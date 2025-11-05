@@ -1313,6 +1313,78 @@ export default function BlogForm({
                 </div>
               </div>
 
+              {/* Published Date Display - Show for existing published posts */}
+              {isEditing && formData.publish_date && (
+                <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <div className="space-y-2">
+                    <label
+                      className={`flex items-center gap-2 text-sm font-medium ${
+                        mode === "dark" ? "text-gray-300" : "text-gray-700"
+                      }`}
+                    >
+                      <Icon icon="heroicons:calendar-days" className="w-4 h-4" />
+                      Published Date
+                    </label>
+                    <div className={`p-3 rounded-lg border ${
+                      mode === "dark"
+                        ? "bg-gray-800 border-gray-700"
+                        : "bg-gray-50 border-gray-200"
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className={`text-sm font-medium ${
+                            mode === "dark" ? "text-white" : "text-gray-900"
+                          }`}>
+                            {new Date(formData.publish_date).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </div>
+                          <div className={`text-xs ${
+                            mode === "dark" ? "text-gray-400" : "text-gray-500"
+                          }`}>
+                            {new Date(formData.publish_date).toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit'
+                            })}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // Switch to schedule mode to allow editing the publish date
+                            handleInputChange({
+                              target: {
+                                name: "publish_option",
+                                value: "schedule"
+                              }
+                            });
+                            // Set the current publish_date as scheduled_date for editing
+                            handleInputChange({
+                              target: {
+                                name: "scheduled_date",
+                                value: new Date(formData.publish_date).toISOString().slice(0, 16)
+                              }
+                            });
+                          }}
+                          className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+                            mode === "dark"
+                              ? "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
+                              : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
+                          }`}
+                        >
+                          <Icon icon="heroicons:pencil" className="w-3 h-3 mr-1 inline" />
+                          Edit Date
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Date Fields - Only show when schedule is selected */}
               {formData.publish_option === "schedule" && (
                 <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
