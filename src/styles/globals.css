@@ -1,0 +1,182 @@
+@import "tailwindcss";
+
+@variant dark (.dark &);
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --font-sans: var(--font-nunito), system-ui, sans-serif;
+
+  --animate-slideDown: slideDown 300ms ease-out;
+  --animate-slideUp: slideUp 300ms ease-out;
+  --animate-fadeIn: fadeIn 300ms ease-out;
+  --animate-fadeOut: fadeOut 300ms ease-out;
+}
+
+:root {
+  --font-nunito: "Nunito", sans-serif;
+}
+
+/* Ensure the font variable is available globally */
+html {
+  font-family: var(--font-nunito), system-ui, sans-serif;
+}
+
+/* Explicit font-sans class for Tailwind */
+.font-sans {
+  font-family: var(--font-nunito), system-ui, sans-serif !important;
+}
+
+body {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+  background-color: #f9fafb;
+  font-size: 15px;
+  font-family: var(--font-nunito), system-ui, sans-serif;
+}
+
+/* Ensure buttons and clickable elements have pointer cursor */
+button,
+[role="button"],
+.cursor-pointer,
+[onclick],
+[data-clickable] {
+  cursor: pointer;
+}
+
+.observe {
+  opacity: 0.2;
+  transition: opacity 0.9s ease-in-out;
+}
+
+/* .border {
+    border-color: #e5e7eb;
+} */
+
+/* Custom Scrollbar Styles */
+
+/* For both vertical and horizontal scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  /* Vertical scrollbar width */
+  height: 8px;
+  /* Horizontal scrollbar height */
+  background-color: #f1f1f1;
+  /* Background color of the scrollbar */
+}
+
+/* Horizontal scrollbar - target it to make it thinner */
+::-webkit-scrollbar-horizontal {
+  height: 6px;
+  /* Thinner horizontal scrollbar */
+}
+
+/* Vertical scrollbar thumb */
+::-webkit-scrollbar-thumb {
+  background-color: #888;
+  /* Color of the scrollbar thumb */
+  border-radius: 10px;
+  /* Rounded corners of scrollbar thumb */
+}
+
+/* On hover, darken the scrollbar thumb */
+::-webkit-scrollbar-thumb:hover {
+  background-color: #555;
+  /* Color of scrollbar thumb on hover */
+}
+
+/* Firefox custom scrollbar */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  /* Thin scrollbar */
+  scrollbar-color: #888 #f1f1f1;
+  /* Thumb and track colors */
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  /* Internet Explorer 10+ */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+  /* Safari and Chrome */
+}
+
+.content-container {
+  transition: margin-left 0.3s ease;
+  margin-left: 84px;
+  /* Default margin with collapsed sidebar (80px + 4px) */
+}
+
+/* When sidebar is expanded */
+.sidebar-open .content-container {
+  margin-left: 204px;
+  /* 200px + 4px */
+}
+
+/* When sidebar is completely hidden */
+body.sidebar-hidden .content-container {
+  margin-left: 0 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 639px) {
+  .content-container {
+    margin-left: 0;
+    /* No margin on mobile when sidebar is hidden */
+  }
+
+  .sidebar-open .content-container {
+    margin-left: 0;
+    /* Sidebar is hidden on mobile when expanded */
+  }
+}
+
+
+/* For mobile and smaller screens */
+@media (max-width: 767px) {
+  .custom-responsive-table {
+    width: 100%;
+  }
+}
+
+/* For tablets and medium screens */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .custom-responsive-table {
+    width: 66vw;
+  }
+}
+
+/* For large screens */
+@media (min-width: 1200px) {
+  .custom-responsive-table {
+    width: 100%;
+  }
+}
+
+@media (max-width: 767px) {
+  .sm\:text-sm {
+
+    width: 100%;
+  }
+}
+
+/* Sidebar overlay improvements */
+@media (max-width: 1023px) {
+  .fixed.left-0.top-0.z-50 {
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Simple mobile sidebar positioning */
+  .fixed.top-0.left-0.h-screen.z-50 {
+    transform-origin: left center;
+  }
+}
