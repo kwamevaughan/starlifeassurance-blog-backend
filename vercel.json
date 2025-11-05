@@ -1,18 +1,1 @@
-{
-  "builds": [
-    {
-      "src": "blog-backend/package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/blog-backend/src/pages/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ]
-}
+{}
