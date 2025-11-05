@@ -1,12 +1,14 @@
 // API endpoint to serve published blog posts for the original HTML news page
 import { createClient } from '@supabase/supabase-js';
+import { getFeaturedImageUrl } from '@/utils/defaultImage';
 
 export default async function handler(req, res) {
   // Set CORS headers to allow the original HTML page to access this API
   const allowedOrigins = [
     'https://starlifeassurance.vercel.app',
     'http://localhost:3000',
-    'http://127.0.0.1:3000'
+    'http://127.0.0.1:3000',
+    'http://localhost:8000'
   ];
   
   const origin = req.headers.origin;
@@ -46,6 +48,7 @@ export default async function handler(req, res) {
         article_name,
         article_image,
         meta_description,
+        excerpt,
         slug,
         author,
         created_at,
@@ -80,9 +83,18 @@ export default async function handler(req, res) {
         }
       }
       
+      // Get the featured image URL (with default fallback)
+      const imageUrl = getFeaturedImageUrl(post.article_image);
+      
+      // Convert relative default image path to absolute URL for external consumption
+      const absoluteImageUrl = imageUrl.startsWith('/') 
+        ? `${req.headers.origin || process.env.PRODUCTION_URL || 'http://localhost:3000'}${imageUrl}`
+        : imageUrl;
+
       return {
         ...post,
-        author_name: authorName
+        author_name: authorName,
+        article_image: absoluteImageUrl
       };
     }) || []);
 

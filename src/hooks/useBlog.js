@@ -3,6 +3,8 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import toast from "react-hot-toast";
 import { calculateSEOScore } from '@/utils/seo';
+import { generateSmartExcerpt, validateExcerpt } from '@/utils/excerptGenerator';
+import { getFeaturedImageUrl } from '@/utils/defaultImage';
 
 // Cache for data to avoid unnecessary refetches
 let blogsCache = null;
@@ -164,6 +166,7 @@ export const useBlog = (blogId) => {
           article_name,
           article_body,
           article_image,
+          excerpt,
           slug,
           is_published,
           is_draft,
@@ -381,18 +384,26 @@ export const useBlog = (blogId) => {
         }
       }
 
-      let finalImageUrl = "";
+      let providedImageUrl = "";
       if (featured_image_url && featured_image_url.startsWith('http')) {
-        finalImageUrl = featured_image_url;
+        providedImageUrl = featured_image_url;
       } else {
-        finalImageUrl = featured_image_upload || featured_image_library || article_image || "";
+        providedImageUrl = featured_image_upload || featured_image_library || article_image || "";
       }
+      
+      // Use default image if no image is provided
+      const finalImageUrl = getFeaturedImageUrl(providedImageUrl);
 
       const finalMetaKeywords = meta_keywords || (keywords ? keywords.join(", ") : "");
       
       // Prioritize the most recent content
       const finalContent = dataToUse.article_body || editorContent || content || "";
       
+
+      // Generate excerpt from content
+      const generatedExcerpt = validateExcerpt(
+        generateSmartExcerpt(finalContent, 200)
+      );
 
       // Calculate SEO score
       const blogToUpsert = {
@@ -404,6 +415,7 @@ export const useBlog = (blogId) => {
         meta_description: description || "",
         meta_keywords: finalMetaKeywords,
         slug,
+        excerpt: generatedExcerpt,
         is_published,
         is_draft,
         publish_date,

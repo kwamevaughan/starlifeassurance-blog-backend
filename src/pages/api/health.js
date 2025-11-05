@@ -4,7 +4,8 @@ export default async function handler(req, res) {
   const allowedOrigins = [
     'https://starlifeassurance.vercel.app',
     'http://localhost:3000',
-    'http://127.0.0.1:3000'
+    'http://127.0.0.1:3000',
+    'http://localhost:8000'
   ];
   
   const origin = req.headers.origin;

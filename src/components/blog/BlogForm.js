@@ -22,6 +22,7 @@ import {
   getScoreBgColor,
   getScoreIcon,
 } from "@/utils/seo";
+import { getFeaturedImageUrl, DEFAULT_BLOG_IMAGE } from "@/utils/defaultImage";
 
 export default function BlogForm({
   mode,
@@ -709,7 +710,7 @@ export default function BlogForm({
   };
 
   const handleRemoveImage = () => {
-    // Clear all image-related fields
+    // Clear all image-related fields (will fall back to default image)
     handleInputChange({
       target: {
         name: "multiple",
@@ -990,14 +991,15 @@ export default function BlogForm({
                   </div>
                 )}
 
-                {formData.featured_image_url && (
-                  <div className="relative aspect-video rounded-xl overflow-hidden">
-                    <Image
-                      src={formData.featured_image_url}
-                      alt="Featured"
-                      fill
-                      className="object-cover"
-                    />
+                {/* Always show image preview - either selected image or default */}
+                <div className="relative aspect-video rounded-xl overflow-hidden">
+                  <Image
+                    src={getFeaturedImageUrl(formData.featured_image_url)}
+                    alt="Featured"
+                    fill
+                    className="object-cover"
+                  />
+                  {formData.featured_image_url && formData.featured_image_url !== DEFAULT_BLOG_IMAGE && (
                     <button
                       type="button"
                       onClick={handleRemoveImage}
@@ -1005,8 +1007,13 @@ export default function BlogForm({
                     >
                       <Icon icon="heroicons:x-mark" className="w-4 h-4" />
                     </button>
-                  </div>
-                )}
+                  )}
+                  {(!formData.featured_image_url || formData.featured_image_url === DEFAULT_BLOG_IMAGE) && (
+                    <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/50 text-white text-xs rounded">
+                      Default Image
+                    </div>
+                  )}
+                </div>
               </div>
             </CollapsibleSection>
 
