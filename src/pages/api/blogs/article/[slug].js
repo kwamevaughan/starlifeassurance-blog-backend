@@ -117,7 +117,8 @@ export default async function handler(req, res) {
     const transformedPost = {
       ...post,
       author_name: authorName,
-      article_image: absoluteImageUrl
+      article_image: absoluteImageUrl,
+      publish_date: post.publish_date || post.created_at // Fallback to created_at if no publish_date
     };
 
     res.status(200).json({
