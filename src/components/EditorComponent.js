@@ -653,7 +653,11 @@ const TipTapEditor = memo(
           throw new Error(data.details || data.error || "Upload failed");
         }
 
-        if (!data.url) {
+        // Handle the nested response structure from ImageKit API
+        const imageUrl = data.data?.url || data.url;
+        const imageName = data.data?.name || data.name || "Image";
+
+        if (!imageUrl) {
           throw new Error("No image URL received from server");
         }
 
@@ -662,10 +666,13 @@ const TipTapEditor = memo(
           .chain()
           .focus()
           .setImage({
-            src: data.url,
-            alt: data.name || "Image",
+            src: imageUrl,
+            alt: imageName,
           })
           .run();
+
+        // Close the image library after successful upload and insertion
+        setShowImageLibrary(false);
 
         toast.success("Image uploaded successfully", {
           id: loadingToast,
@@ -1430,7 +1437,10 @@ function EditorComponent({
         throw new Error(data.details || data.error || "Upload failed");
       }
 
-      if (!data.url) {
+      // Handle the nested response structure from ImageKit API
+      const imageUrl = data.data?.url || data.url;
+
+      if (!imageUrl) {
         throw new Error("No image URL received from server");
       }
 
@@ -1438,7 +1448,7 @@ function EditorComponent({
         id: loadingToast,
       });
 
-      return data.url;
+      return imageUrl;
     } catch (error) {
       console.error("Error uploading image:", error);
       toast.error(`Failed to upload image: ${error.message}`, {

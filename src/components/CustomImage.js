@@ -124,11 +124,12 @@ function ImageNode({ node, updateAttributes, selected, deleteNode }) {
             }}
             className="cursor-pointer"
           >
-            <div ref={imageRef} style={{ position: 'relative', width: width || '100%', height: height || 'auto' }}>
+            <div ref={imageRef} style={{ width: width || '100%', height: height || 'auto' }}>
               <Image
                 src={src}
                 alt={alt || 'Image'}
-                fill
+                width={width || 800}
+                height={height || 600}
                 style={{
                   objectFit: 'contain',
                   maxWidth: '100%',
@@ -139,11 +140,12 @@ function ImageNode({ node, updateAttributes, selected, deleteNode }) {
             </div>
           </a>
         ) : (
-          <div ref={imageRef} style={{ position: 'relative', width: width || '100%', height: height || 'auto' }}>
+          <div ref={imageRef} style={{ width: width || '100%', height: height || 'auto' }}>
             <Image
               src={src}
               alt={alt || 'Image'}
-              fill
+              width={width || 800}
+              height={height || 600}
               style={{
                 objectFit: 'contain',
                 maxWidth: '100%',

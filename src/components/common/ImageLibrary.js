@@ -62,12 +62,18 @@ const FileUploader = ({ onUpload, uploading, mode }) => {
 
     if (uploading) return;
 
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) {
-      console.log("File dropped:", file.name, file.type);
-      onUpload(file);
+    const files = Array.from(e.dataTransfer.files);
+    const imageFiles = files.filter(file => file.type.startsWith("image/"));
+    
+    if (imageFiles.length > 0) {
+      console.log(`${imageFiles.length} image file(s) dropped`);
+      // Upload multiple files
+      imageFiles.forEach(file => {
+        console.log("Uploading file:", file.name, file.type);
+        onUpload(file);
+      });
     } else {
-      console.log("Invalid file type dropped:", file?.type);
+      console.log("No valid image files dropped");
     }
   };
 
@@ -116,7 +122,7 @@ const FileUploader = ({ onUpload, uploading, mode }) => {
             mode === "dark" ? "text-gray-400" : "text-gray-500"
           }`}
         >
-          {uploading ? "Uploading..." : "Choose file or drag and drop"}
+          {uploading ? "Uploading..." : "Choose files or drag and drop multiple images"}
         </span>
       </div>
     </div>
@@ -337,15 +343,19 @@ export default function ImageLibrary({
     fetchFiles();
   };
 
-  // Alternative upload method as backup
+  // Alternative upload method as backup - now supports multiple files
   const triggerFileUpload = () => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
+    input.multiple = true; // Enable multiple file selection
     input.onchange = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        handleFileUpload(file);
+      const files = Array.from(e.target.files);
+      if (files.length > 0) {
+        // Upload multiple files
+        files.forEach(file => {
+          handleFileUpload(file);
+        });
       }
     };
     input.click();
@@ -490,7 +500,7 @@ export default function ImageLibrary({
                       } focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       <Icon icon="heroicons:folder-plus" className="w-5 h-5" />
-                      Browse
+                      Browse Multiple
                     </button>
                   </div>
                 </div>
@@ -525,7 +535,7 @@ export default function ImageLibrary({
                         e.stopPropagation();
                       }}
                     >
-                      <div className="w-full h-48">
+                      <div className="w-full h-48 relative">
                         <Image
                           src={file.url}
                           alt={file.name}
