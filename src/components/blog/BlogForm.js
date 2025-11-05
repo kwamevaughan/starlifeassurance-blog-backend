@@ -31,6 +31,7 @@ export default function BlogForm({
   handleCancel,
   handleSubmit,
   fetchBlogs,
+  documentData,
 }) {
   const router = useRouter();
   const {
@@ -62,7 +63,7 @@ export default function BlogForm({
   const [currentBlogId, setCurrentBlogId] = useState(null);
   const [isSEOCollapsed, setIsSEOCollapsed] = useState(true);
   const [isImageCollapsed, setIsImageCollapsed] = useState(true);
-  const [isPublishingCollapsed, setIsPublishingCollapsed] = useState(true);
+  const [isPublishingCollapsed, setIsPublishingCollapsed] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Define isEditing before effects
@@ -242,48 +243,94 @@ export default function BlogForm({
       setSelectedTags([]);
       setCurrentBlogId(null);
     } else if (!blogId) {
-      // Reset form when opening modal for new post
-      setFormData({
-        id: null,
-        article_name: "",
-        article_body: "",
-        category_id: null,
-        tag_ids: [],
-        article_image: "",
-        meta_title: "",
-        meta_description: "",
-        meta_keywords: "",
-        slug: "",
-        is_published: false,
-        is_draft: true,
-        publish_date: null,
-        author: authors.length > 0 ? authors[0].name : "Star Assurance Admin",
-        title: "",
-        description: "",
-        keywords: [],
-        featured_image_url: "",
-        featured_image_upload: null,
-        featured_image_library: null,
-        content: "",
-        publish_option: "draft",
-        scheduled_date: null,
-        focus_keyword: "",
-      });
-      setEditorContent("");
+      // Check if we have document data to populate the form
+      if (documentData) {
+
+        // Populate form with document data
+        // Find "General" category ID
+        const generalCategory = categories.find(cat => cat.name.toLowerCase() === 'general');
+        const defaultCategoryId = generalCategory ? generalCategory.id : null;
+
+        setFormData({
+          id: null,
+          article_name: documentData.title,
+          article_body: documentData.content,
+          category_id: defaultCategoryId,
+          tag_ids: [],
+          article_image: "",
+          meta_title: documentData.title,
+          meta_description: "",
+          meta_keywords: "",
+          slug: documentData.slug,
+          is_published: false,
+          is_draft: true,
+          publish_date: null,
+          author: documentData.defaultAuthor?.name || (authors.length > 0 ? authors[0].name : "Star Assurance Admin"),
+          title: documentData.title,
+          description: "",
+          keywords: [],
+          featured_image_url: "",
+          featured_image_upload: null,
+          featured_image_library: null,
+          content: documentData.content,
+          publish_option: "draft",
+          scheduled_date: null,
+          focus_keyword: "", // Optional field
+        });
+        setEditorContent(documentData.content);
+        
+        // Also ensure the editor content is set after a small delay to handle any timing issues
+        setTimeout(() => {
+          setEditorContent(documentData.content);
+        }, 100);
+      } else {
+        // Find "General" category ID for new posts
+        const generalCategory = categories.find(cat => cat.name.toLowerCase() === 'general');
+        const defaultCategoryId = generalCategory ? generalCategory.id : null;
+
+        // Reset form when opening modal for new post
+        setFormData({
+          id: null,
+          article_name: "",
+          article_body: "",
+          category_id: defaultCategoryId,
+          tag_ids: [],
+          article_image: "",
+          meta_title: "",
+          meta_description: "",
+          meta_keywords: "",
+          slug: "",
+          is_published: false,
+          is_draft: true,
+          publish_date: null,
+          author: authors.length > 0 ? authors[0].name : "Star Assurance Admin",
+          title: "",
+          description: "",
+          keywords: [],
+          featured_image_url: "",
+          featured_image_upload: null,
+          featured_image_library: null,
+          content: "",
+          publish_option: "draft",
+          scheduled_date: null,
+          focus_keyword: "", // Optional field
+        });
+        setEditorContent("");
+      }
       setImageSource("upload");
       setUploadedImage(null);
       setSelectedTags([]);
       setCurrentBlogId(null);
     }
-  }, [showForm, blogId, setFormData, setEditorContent, authors]);
+  }, [showForm, blogId, setFormData, setEditorContent, authors, documentData, categories]);
 
   // Add a separate effect to handle editor content reset
   useEffect(() => {
-    if (!blogId && showForm) {
-      // When creating a new blog, ensure editor content is cleared
+    if (!blogId && showForm && !documentData) {
+      // When creating a new blog (without document data), ensure editor content is cleared
       setEditorContent("");
     }
-  }, [blogId, showForm, setEditorContent]);
+  }, [blogId, showForm, setEditorContent, documentData]);
 
   const handleTagSelect = (e) => {
     // Handle both event objects and direct tag names
@@ -1079,7 +1126,7 @@ export default function BlogForm({
                     <Icon icon="heroicons:document-check" className="w-4 h-4" />
                     Publish Status
                   </label>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                     <button
                       type="button"
                       onClick={() =>
@@ -1258,7 +1305,7 @@ export default function BlogForm({
                               : "text-gray-700"
                           }`}
                         >
-                          Schedule
+                          Schedule/Backdate
                         </span>
                       </div>
                     </button>
@@ -1276,19 +1323,178 @@ export default function BlogForm({
                       }`}
                     >
                       <Icon icon="heroicons:calendar" className="w-4 h-4" />
-                      Schedule Date
+                      Schedule Date & Time
                     </label>
-                    <input
-                      type="datetime-local"
-                      name="scheduled_date"
-                      value={formData.scheduled_date || ""}
-                      onChange={handleInputChange}
-                      className={`w-full px-4 py-2.5 rounded-xl border ${
-                        mode === "dark"
-                          ? "bg-gray-800 border-gray-700 text-gray-100"
-                          : "bg-white border-gray-300 text-gray-900"
-                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                    />
+                    <div className="relative">
+                      <input
+                        ref={(input) => {
+                          // Store reference for programmatic access
+                          if (input) {
+                            input.showPicker = input.showPicker || function() {
+                              // Fallback for browsers that don't support showPicker
+                              this.focus();
+                              this.click();
+                            };
+                          }
+                        }}
+                        type="datetime-local"
+                        name="scheduled_date"
+                        value={formData.scheduled_date || ""}
+                        onChange={handleInputChange}
+                        onClick={(e) => {
+                          // Ensure the picker opens when clicking the input
+                          if (e.target.showPicker) {
+                            try {
+                              e.target.showPicker();
+                            } catch (error) {
+                              // Fallback for older browsers
+                              e.target.focus();
+                            }
+                          }
+                        }}
+                        className={`w-full px-4 py-2.5 pr-12 rounded-xl border ${
+                          mode === "dark"
+                            ? "bg-gray-800 border-gray-700 text-gray-100"
+                            : "bg-white border-gray-300 text-gray-900"
+                        } focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer`}
+                        placeholder="Select date and time"
+                        title="Click to select date and time (supports past dates for backdating)"
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          // Find the input and trigger its picker
+                          const input = e.target.closest('.relative').querySelector('input[type="datetime-local"]');
+                          if (input) {
+                            if (input.showPicker) {
+                              try {
+                                input.showPicker();
+                              } catch (error) {
+                                input.focus();
+                                input.click();
+                              }
+                            } else {
+                              input.focus();
+                              input.click();
+                            }
+                          }
+                        }}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        title="Open calendar"
+                      >
+                        <Icon 
+                          icon="heroicons:calendar-days" 
+                          className={`w-5 h-5 ${
+                            mode === "dark" ? "text-gray-400 hover:text-gray-300" : "text-gray-500 hover:text-gray-700"
+                          }`} 
+                        />
+                      </button>
+                    </div>
+                    <div className={`text-xs ${
+                      mode === "dark" ? "text-gray-400" : "text-gray-500"
+                    }`}>
+                      <div className="flex items-center gap-4">
+                        <span>• Click the field to open calendar</span>
+                        <span>• Supports past dates for backdating</span>
+                        <span>• Future dates for scheduling</span>
+                      </div>
+                    </div>
+                    
+                    {/* Quick Date Buttons */}
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const now = new Date();
+                          const formatted = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+                            .toISOString()
+                            .slice(0, 16);
+                          handleInputChange({
+                            target: {
+                              name: "scheduled_date",
+                              value: formatted
+                            }
+                          });
+                        }}
+                        className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+                          mode === "dark"
+                            ? "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
+                            : "bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        Now
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const tomorrow = new Date();
+                          tomorrow.setDate(tomorrow.getDate() + 1);
+                          tomorrow.setHours(9, 0, 0, 0); // 9 AM tomorrow
+                          const formatted = new Date(tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60000)
+                            .toISOString()
+                            .slice(0, 16);
+                          handleInputChange({
+                            target: {
+                              name: "scheduled_date",
+                              value: formatted
+                            }
+                          });
+                        }}
+                        className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+                          mode === "dark"
+                            ? "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
+                            : "bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        Tomorrow 9 AM
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextWeek = new Date();
+                          nextWeek.setDate(nextWeek.getDate() + 7);
+                          nextWeek.setHours(9, 0, 0, 0); // 9 AM next week
+                          const formatted = new Date(nextWeek.getTime() - nextWeek.getTimezoneOffset() * 60000)
+                            .toISOString()
+                            .slice(0, 16);
+                          handleInputChange({
+                            target: {
+                              name: "scheduled_date",
+                              value: formatted
+                            }
+                          });
+                        }}
+                        className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+                          mode === "dark"
+                            ? "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
+                            : "bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        Next Week
+                      </button>
+                      {formData.scheduled_date && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleInputChange({
+                              target: {
+                                name: "scheduled_date",
+                                value: ""
+                              }
+                            });
+                          }}
+                          className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+                            mode === "dark"
+                              ? "bg-red-900/30 border-red-800 text-red-400 hover:bg-red-900/50"
+                              : "bg-red-100 border-red-300 text-red-700 hover:bg-red-200"
+                          }`}
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

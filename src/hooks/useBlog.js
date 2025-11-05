@@ -371,10 +371,27 @@ export const useBlog = (blogId) => {
       } = dataToUse;
 
 
-      const is_published = publish_option === "publish";
-      const is_draft = publish_option === "draft";
-      const publish_date =
-        publish_option === "schedule" ? scheduled_date : null;
+      // Handle scheduling logic - if scheduled date is in the past, publish immediately
+      let is_published = publish_option === "publish";
+      let is_draft = publish_option === "draft";
+      let publish_date = null;
+
+      if (publish_option === "schedule" && scheduled_date) {
+        const scheduledDateTime = new Date(scheduled_date);
+        const now = new Date();
+        
+        if (scheduledDateTime <= now) {
+          // Scheduled date is in the past or now - publish immediately (backdating)
+          is_published = true;
+          is_draft = false;
+          publish_date = scheduled_date; // Keep the original scheduled date for backdating
+        } else {
+          // Scheduled date is in the future - keep as draft until scheduled time
+          is_published = false;
+          is_draft = true;
+          publish_date = scheduled_date;
+        }
+      }
 
       let article_category = null;
       if (category_id) {

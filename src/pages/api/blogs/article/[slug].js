@@ -64,6 +64,7 @@ export default async function handler(req, res) {
         author,
         created_at,
         updated_at,
+        publish_date,
         is_published
       `)
       .eq('slug', slug)

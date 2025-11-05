@@ -626,7 +626,7 @@ export default function BlogFormFields({
             mode === "dark" ? "text-gray-300" : "text-gray-700"
           }`}
         >
-          Focus Keyword *
+          Focus Keyword
         </label>
         <input
           type="text"
@@ -638,8 +638,7 @@ export default function BlogFormFields({
               ? "bg-gray-800 border-gray-700 text-gray-100"
               : "bg-white border-gray-300 text-gray-900"
           } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-          placeholder="Enter focus keyword for SEO"
-          required
+          placeholder="Enter focus keyword for SEO (optional)"
         />
         <p
           className={`mt-1 text-sm ${
@@ -669,9 +668,7 @@ export default function BlogFormFields({
         >
           <EditorComponent
             key={`editor-${formData.id || "new"}`}
-            initialValue={
-              formData.id ? formData.article_body || editorContent || "" : ""
-            }
+            initialValue={editorContent || formData.article_body || formData.content || ""}
             onChange={(newContent) => {
               // Update both the editor content state and form data
               setEditorContent(newContent);

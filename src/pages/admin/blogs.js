@@ -6,6 +6,7 @@ import useAuthSession from "@/hooks/useAuthSession";
 import useLogout from "@/hooks/useLogout";
 import { useBlog } from "@/hooks/useBlog";
 import ConfirmDeleteModal from "@/components/modals/ConfirmDeleteModal";
+import DocumentUploadModal from "@/components/modals/DocumentUploadModal";
 import BlogForm from "@/components/blog/BlogForm";
 import { getAdminBlogProps } from "@/utils/getPropsUtils";
 import useDarkMode from "@/hooks/useDarkMode";
@@ -47,9 +48,11 @@ export default function AdminBlog({
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDocumentUploadOpen, setIsDocumentUploadOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [documentData, setDocumentData] = useState(null);
   const processedEditRef = useRef(null);
 
   const handleCreateBlog = useCallback(() => {
@@ -147,6 +150,7 @@ export default function AdminBlog({
   const handleCancel = useCallback(() => {
     setIsModalOpen(false);
     setSelectedIds([]);
+    setDocumentData(null); // Clear document data when closing
     // Reset form after modal closes
     setTimeout(() => {
       setIsEditing(false);
@@ -235,6 +239,18 @@ export default function AdminBlog({
         ? prev.filter((blogId) => blogId !== id)
         : [...prev, id]
     );
+  }, []);
+
+  const handleDocumentProcessed = useCallback((processedDocumentData) => {
+    // Store the document data to pass to BlogForm
+    setDocumentData(processedDocumentData);
+    
+    // Open the blog form with document data
+    setIsEditing(false);
+    setEditingId(null);
+    setIsModalOpen(true);
+    
+    toast.success(`Document "${processedDocumentData.filename}" processed successfully!`);
   }, []);
 
 
@@ -414,6 +430,12 @@ export default function AdminBlog({
             ]}
             actions={[
               {
+                label: "Upload Document",
+                icon: "heroicons:document-arrow-up",
+                onClick: () => setIsDocumentUploadOpen(true),
+                variant: "secondary",
+              },
+              {
                 label: "New Post",
                 icon: "heroicons:plus",
                 onClick: handleCreateBlog,
@@ -591,13 +613,22 @@ export default function AdminBlog({
 
       {/* Blog Form Modal */}
       <BlogForm
-        key={`blog-form-${editingId}-${isModalOpen}`}
+        key={`blog-form-${editingId}-${isModalOpen}-${documentData?.filename || ''}`}
         mode={mode}
         blogId={editingId}
         showForm={isModalOpen}
         handleCancel={handleCancel}
         handleSubmit={handleFormSubmit}
         fetchBlogs={fetchBlogs}
+        documentData={documentData}
+      />
+
+      {/* Document Upload Modal */}
+      <DocumentUploadModal
+        isOpen={isDocumentUploadOpen}
+        onClose={() => setIsDocumentUploadOpen(false)}
+        onDocumentProcessed={handleDocumentProcessed}
+        mode={mode}
       />
 
       {/* Delete Confirmation Modal */}
