@@ -163,7 +163,6 @@ export default function Login() {
           </div>
         </div>
       </div>
-      <Toaster position="top-right" />
     </>
   );
 }

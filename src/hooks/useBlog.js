@@ -187,7 +187,7 @@ export const useBlog = (blogId) => {
         ...blog,
         article_category: blog.category?.name || null,
         article_tags: blog.tags?.map((t) => t.tag.name) || [],
-        author_name: blog.author || 'Unknown'
+        author_name: blog.author_details?.name || blog.author_details?.username || 'Unknown'
       }));
 
       // Update cache

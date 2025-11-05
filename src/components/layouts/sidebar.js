@@ -62,6 +62,13 @@ const Sidebar = ({
 
   const isActiveRoute = (href) => {
     if (!href) return false;
+    
+    // Exact match for dashboard to prevent it from being active on all admin pages
+    if (href === '/admin') {
+      return router.pathname === '/admin';
+    }
+    
+    // For other routes, allow matching sub-routes
     return router.pathname === href || router.pathname.startsWith(href + '/');
   };
 
