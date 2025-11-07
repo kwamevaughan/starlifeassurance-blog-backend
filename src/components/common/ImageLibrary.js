@@ -541,6 +541,11 @@ export default function ImageLibrary({
                           alt={file.name}
                           fill
                           className="object-cover"
+                          onError={(e) => {
+                            // Hide broken images or show placeholder
+                            e.target.style.display = 'none';
+                          }}
+                          unoptimized={file.url?.includes('ik.imagekit.io')}
                         />
                       </div>
                       <div

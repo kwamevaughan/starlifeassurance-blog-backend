@@ -55,50 +55,28 @@ export default async function handler(req, res) {
       const result = await mammoth.convertToHtml({ buffer });
       extractedContent = result.value;
 
-      // Try to extract title from content (first heading or first line)
+      // Extract title from first line and remove it from content
       const titleMatch = extractedContent.match(/<h[1-6][^>]*>(.*?)<\/h[1-6]>/i);
       if (titleMatch) {
         // Use heading as title if found
         extractedTitle = titleMatch[1].replace(/<[^>]*>/g, '').trim();
-        
         // Remove the heading from content since we're using it as title
         extractedContent = extractedContent.replace(/<h[1-6][^>]*>.*?<\/h[1-6]>/i, '').trim();
       } else {
-        // Try to get first paragraph as title if no heading found
+        // Use first paragraph as title if no heading found
         const paragraphMatch = extractedContent.match(/<p[^>]*>(.*?)<\/p>/i);
         if (paragraphMatch) {
           const firstParagraph = paragraphMatch[1].replace(/<[^>]*>/g, '').trim();
-          if (firstParagraph.length > 0 && firstParagraph.length <= 100) {
+          if (firstParagraph.length > 0) {
             extractedTitle = firstParagraph;
-            
-            // Remove the first paragraph from content since we're using it as title
+            // Remove ONLY the first paragraph from content since we're using it as title
             extractedContent = extractedContent.replace(/<p[^>]*>.*?<\/p>/i, '').trim();
           }
         }
       }
 
-      // Clean up title
+      // Clean up title - use filename as fallback
       extractedTitle = extractedTitle || filenameTitle;
-      
-      // Additional cleanup: Remove duplicate title from beginning of content
-      // This handles cases where the title appears as plain text at the start
-      if (extractedTitle && extractedContent) {
-        // Create a regex to match the title at the beginning of content (case insensitive)
-        const titleRegex = new RegExp(`^\\s*(<p[^>]*>)?\\s*${extractedTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*(<\/p>)?\\s*`, 'i');
-        extractedContent = extractedContent.replace(titleRegex, '').trim();
-        
-        // Also check for title in the first paragraph specifically
-        const firstParagraphMatch = extractedContent.match(/^<p[^>]*>(.*?)<\/p>/i);
-        if (firstParagraphMatch) {
-          const firstParagraphText = firstParagraphMatch[1].replace(/<[^>]*>/g, '').trim();
-          // If first paragraph is exactly the title or very similar, remove it
-          if (firstParagraphText.toLowerCase() === extractedTitle.toLowerCase() || 
-              firstParagraphText.toLowerCase().includes(extractedTitle.toLowerCase()) ||
-              extractedTitle.toLowerCase().includes(firstParagraphText.toLowerCase())) {
-            extractedContent = extractedContent.replace(/^<p[^>]*>.*?<\/p>/i, '').trim();
-          }
-        }
-      }
       
     } catch (conversionError) {
       console.error('Error converting document:', conversionError);
@@ -110,12 +88,28 @@ export default async function handler(req, res) {
     try {
       const { data: editors, error: editorError } = await supabase
         .from('hr_users')
-        .select('id, name, username')
+        .select('id, name, username, role')
         .eq('role', 'editor')
         .limit(1);
 
+      console.log('Editor query result:', { editors, editorError });
+
       if (!editorError && editors && editors.length > 0) {
         defaultAuthor = editors[0];
+        console.log('Found default author:', defaultAuthor);
+      } else {
+        console.log('No editor found, trying alternative approach...');
+        // Fallback: try to find any user with admin or editor-like role
+        const { data: fallbackUsers, error: fallbackError } = await supabase
+          .from('hr_users')
+          .select('id, name, username, role')
+          .or('role.eq.admin,role.eq.editor,role.ilike.%editor%')
+          .limit(1);
+        
+        if (!fallbackError && fallbackUsers && fallbackUsers.length > 0) {
+          defaultAuthor = fallbackUsers[0];
+          console.log('Found fallback author:', defaultAuthor);
+        }
       }
     } catch (authorError) {
       console.log('Could not fetch editor user:', authorError);

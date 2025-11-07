@@ -19,6 +19,7 @@ import BlogCard from "@/components/blog/BlogCard";
 import Select from "react-select";
 import { getSelectStyles } from "@/utils/selectStyles";
 import MainLayout from "@/components/layouts/MainLayout";
+import Pagination from "@/components/common/Pagination";
 
 export default function AdminBlog({
   categories,
@@ -31,6 +32,18 @@ export default function AdminBlog({
   const [filterTerm, setFilterTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedTags, setSelectedTags] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
+
+  // Update items per page when view mode changes
+  useEffect(() => {
+    if (viewMode === "grid") {
+      setItemsPerPage(12);
+    } else {
+      setItemsPerPage(25);
+    }
+    setCurrentPage(1);
+  }, [viewMode]);
 
   useAuthSession();
   const handleLogout = useLogout();
@@ -281,6 +294,29 @@ export default function AdminBlog({
       return matchesSearch && matchesCategory && matchesTags;
     });
   }, [blogs, filterTerm, selectedCategory, selectedTags]);
+
+  // Pagination calculations
+  const totalItems = filteredBlogs.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedBlogs = filteredBlogs.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterTerm, selectedCategory, selectedTags]);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    // Scroll to top when page changes
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page
+  };
 
 
 
@@ -546,7 +582,7 @@ export default function AdminBlog({
                   <>
                     {viewMode === "grid" ? (
                       <DataGrid
-                        data={filteredBlogs}
+                        data={paginatedBlogs}
                         mode={mode}
                         onEdit={handleEditClick}
                         onDelete={handleDeleteClick}
@@ -561,7 +597,7 @@ export default function AdminBlog({
                       />
                     ) : (
                       <GenericTable
-                        data={filteredBlogs}
+                        data={paginatedBlogs}
                         columns={blogTableColumns}
                         onEdit={handleEditClick}
                         onDelete={handleDeleteClick}
@@ -572,8 +608,8 @@ export default function AdminBlog({
                         mode={mode}
                         selectable={true}
                         searchable={false} // We have custom search above
-                        enableDateFilter={true}
-                        enableSortFilter={true}
+                        enableDateFilter={false} // Disable to avoid conflicts with our pagination
+                        enableSortFilter={false} // Disable to avoid conflicts with our pagination
                         enableRefresh={true}
                         onRefresh={fetchBlogs}
                         onSelectionChange={(selected) => setSelectedIds(selected)}
@@ -593,6 +629,21 @@ export default function AdminBlog({
                   </>
                 )}
               </div>
+
+              {/* Pagination */}
+              {filteredBlogs.length > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={handlePageChange}
+                  onItemsPerPageChange={handleItemsPerPageChange}
+                  mode={mode}
+                  showItemsPerPage={true}
+                  itemsPerPageOptions={viewMode === "grid" ? [12, 24, 48] : [10, 25, 50, 100]}
+                />
+              )}
             </div>
             <div
               className={`absolute bottom-0 left-0 right-0 h-1 ${
