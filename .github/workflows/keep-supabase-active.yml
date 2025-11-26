@@ -1,0 +1,100 @@
+name: Keep Supabase Active
+
+on:
+  schedule:
+    # Run every 6 hours to keep Supabase from pausing
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Enable debug mode'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup environment info
+        run: |
+          echo "=== Keep Supabase Active ==="
+          echo "Event: ${{ github.event_name }}"
+          echo "Workflow: ${{ github.workflow }}"
+          echo "Run ID: ${{ github.run_id }}"
+          echo "Timestamp: $(date -u)"
+          echo "=================================="
+
+      - name: Ping Blog API Health Endpoint
+        env:
+          API_URL: https://starlifeassurance-blog-backend.vercel.app
+        run: |
+          echo "=== Pinging Blog API ==="
+          echo "URL: ${API_URL}/api/health"
+          
+          RESPONSE=$(curl -sS -w "\nHTTP_STATUS:%{http_code}" \
+            -X GET "${API_URL}/api/health" 2>&1 || echo "CURL_FAILED")
+          
+          if [[ "$RESPONSE" != *"CURL_FAILED"* ]]; then
+            HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS:" | cut -d: -f2 || echo "000")
+            RESPONSE_BODY=$(echo "$RESPONSE" | grep -v "HTTP_STATUS:" || echo '{}')
+            
+            echo "HTTP Status: ${HTTP_STATUS}"
+            echo "Response: $RESPONSE_BODY"
+            
+            if [ "${HTTP_STATUS}" = "200" ]; then
+              echo "✅ Blog API is healthy"
+            else
+              echo "⚠️ Blog API returned status: ${HTTP_STATUS}"
+            fi
+          else
+            echo "⚠️ Could not reach Blog API"
+          fi
+
+      - name: Ping Published Blogs Endpoint
+        env:
+          API_URL: https://starlifeassurance-blog-backend.vercel.app
+        run: |
+          echo ""
+          echo "=== Pinging Published Blogs Endpoint ==="
+          echo "URL: ${API_URL}/api/blogs/published"
+          
+          RESPONSE=$(curl -sS -w "\nHTTP_STATUS:%{http_code}" \
+            -X GET "${API_URL}/api/blogs/published?limit=1" 2>&1 || echo "CURL_FAILED")
+          
+          if [[ "$RESPONSE" != *"CURL_FAILED"* ]]; then
+            HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS:" | cut -d: -f2 || echo "000")
+            RESPONSE_BODY=$(echo "$RESPONSE" | grep -v "HTTP_STATUS:" || echo '{}')
+            
+            echo "HTTP Status: ${HTTP_STATUS}"
+            
+            if [ "${HTTP_STATUS}" = "200" ]; then
+              echo "✅ Published blogs endpoint is working"
+              
+              # Try to parse blog count
+              if command -v jq >/dev/null 2>&1; then
+                BLOG_COUNT=$(echo "$RESPONSE_BODY" | jq -r '.total // 0' 2>/dev/null)
+                echo "📝 Blogs available: $BLOG_COUNT"
+              fi
+            else
+              echo "⚠️ Published blogs endpoint returned status: ${HTTP_STATUS}"
+              echo "Response: $RESPONSE_BODY"
+            fi
+          else
+            echo "⚠️ Could not reach published blogs endpoint"
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo ""
+          echo "=== Keep-Alive Summary ==="
+          echo "Timestamp: $(date -u)"
+          echo "Status: ${{ job.status }}"
+          echo ""
+          echo "🎯 Purpose: Keep Supabase database active"
+          echo "⏰ Next run: In 6 hours"
+          echo "📅 Schedule: Every 6 hours (0 */6 * * *)"
+          echo ""
+          echo "This workflow prevents Supabase from pausing due to inactivity"
+          echo "========================="

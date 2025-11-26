@@ -8,14 +8,23 @@ export default async function handler(req, res) {
     'https://starlifeassurance.vercel.app',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
+    'http://127.0.0.1:5500',
+    'http://localhost:5500',
     'http://localhost:8000'
   ];
   
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (origin) {
+    // Allow any localhost/127.0.0.1 origin in development
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', 'https://starlifeassurance.vercel.app');
+    }
   } else {
-    res.setHeader('Access-Control-Allow-Origin', 'https://starlifeassurance.vercel.app');
+    res.setHeader('Access-Control-Allow-Origin', '*');
   }
   
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -32,13 +41,25 @@ export default async function handler(req, res) {
     return;
   }
 
-  // Create server-side Supabase client
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-
   try {
+    // Validate environment variables
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error('Missing Supabase credentials');
+      throw new Error('Server configuration error: Missing Supabase credentials');
+    }
+
+    // Create server-side Supabase client
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      }
+    );
+
     const { limit = 10, offset = 0 } = req.query;
     
     const { data: posts, error } = await supabase
@@ -61,28 +82,31 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
-    // Transform the data to include proper author names
-    const transformedPosts = await Promise.all(posts?.map(async (post) => {
-      let authorName = post.author || 'StarLife Admin';
+    // Get all unique author UUIDs
+    const authorUUIDs = posts?.filter(post => 
+      post.author && post.author.length === 36 && post.author.includes('-')
+    ).map(post => post.author) || [];
+
+    // Fetch all authors in one query if there are any UUIDs
+    let authorMap = {};
+    if (authorUUIDs.length > 0) {
+      const { data: authors } = await supabase
+        .from('hr_users')
+        .select('id, name')
+        .in('id', authorUUIDs);
       
-      // Check if author field looks like a UUID (if it contains hyphens and is 36 chars)
-      if (post.author && post.author.length === 36 && post.author.includes('-')) {
-        try {
-          // Try to fetch the author name from hr_users table
-          const { data: authorData } = await supabase
-            .from('hr_users')
-            .select('name')
-            .eq('id', post.author)
-            .single();
-          
-          if (authorData?.name) {
-            authorName = authorData.name;
-          }
-        } catch (authorError) {
-          console.log('Could not fetch author name for UUID:', post.author);
-          // Keep the default name
-        }
+      if (authors) {
+        authorMap = authors.reduce((acc, author) => {
+          acc[author.id] = author.name;
+          return acc;
+        }, {});
       }
+    }
+
+    // Transform the data to include proper author names
+    const transformedPosts = posts?.map((post) => {
+      // Get author name from map or use default
+      const authorName = authorMap[post.author] || post.author || 'StarLife Admin';
       
       // Get the featured image URL (with default fallback)
       const imageUrl = getFeaturedImageUrl(post.article_image);
@@ -98,7 +122,7 @@ export default async function handler(req, res) {
         article_image: absoluteImageUrl,
         publish_date: post.publish_date || post.created_at // Fallback to created_at if no publish_date
       };
-    }) || []);
+    }) || [];
 
     res.status(200).json({
       success: true,
@@ -107,9 +131,15 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Error fetching published blogs:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause
+    });
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch blog posts'
+      error: 'Failed to fetch blog posts',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
